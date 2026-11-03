@@ -279,6 +279,24 @@ export interface PlanProject {
   lastSyncedSequence: number;
 }
 
+export type DiscrepancySeverity = 'INFO' | 'WARNING' | 'ERROR';
+
+export type DiscrepancyCode =
+  | 'OPEN_PERIMETER_VERTEX'
+  | 'SELF_INTERSECTING_WALLS'
+  | 'DUPLICATE_COLLINEAR_SEGMENT'
+  | 'UNCLOSED_ROOM_POLYGON'
+  | 'AREA_DISCREPANCY_GAP';
+
+export interface DiscrepancyWarning {
+  id: string;
+  severity: DiscrepancySeverity;
+  code: DiscrepancyCode;
+  message: string;
+  affectedEntityIds: UUID[];
+  pointMm?: Point2D;
+}
+
 export type SyncEntityType =
   | 'PROJECT'
   | 'FLOOR_LEVEL'

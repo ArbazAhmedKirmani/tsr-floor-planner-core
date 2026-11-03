@@ -311,6 +311,24 @@ export class PlanarGraph {
     return mergedWall;
   }
 
+  public static extractMinimalFaces(
+    vertices: readonly Vertex[],
+    walls: readonly WallEdge[],
+  ): DetectedFaceCycle[] {
+    const graph = new PlanarGraph('temp-level', [...vertices], [...walls]);
+    return graph.detectInteriorRoomCycles();
+  }
+
+  public static syncRooms(params: {
+    floorLevelId: UUID;
+    vertices: readonly Vertex[];
+    walls: readonly WallEdge[];
+    existingRooms?: RoomSpace[];
+  }): RoomSpace[] {
+    const graph = new PlanarGraph(params.floorLevelId, [...params.vertices], [...params.walls]);
+    return graph.buildRoomSpaces(params.existingRooms ?? []);
+  }
+
   /**
    * Extracts closed interior faces (rooms) using DCEL / Half-Edge planar cycle detection:
    * 1. Iteratively prunes degree-1 filament vertices/edges that cannot bound a room.

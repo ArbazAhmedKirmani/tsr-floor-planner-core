@@ -67,6 +67,24 @@ export class SnapSolver {
     return { ...this.config };
   }
 
+  public static solveSnap(params: {
+    rawPoint: Point2D;
+    vertices: readonly Vertex[];
+    walls: readonly WallEdge[];
+    anchorPoint?: Point2D;
+    excludeVertexIds?: ReadonlySet<UUID>;
+    config?: Partial<SnapConfig>;
+  }): SnapResult {
+    const solver = new SnapSolver(params.config);
+    return solver.solve(
+      params.rawPoint,
+      params.vertices,
+      params.walls,
+      params.anchorPoint,
+      params.excludeVertexIds ?? new Set(),
+    );
+  }
+
   /**
    * Resolves a raw cursor point (in mm) to the highest-priority geometric snap target.
    */

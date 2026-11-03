@@ -358,5 +358,119 @@ export class AreaEngine {
       roomBreakdowns,
     };
   }
+
+  /**
+   * Ray-casting algorithm to test whether point pt is strictly inside or on the boundary of polygon.
+   * Useful for room selection, defect pin mapping, and touch-hit tests.
+   */
+  public static isPointInsidePolygon(pt: Point2D, polygon: readonly Point2D[]): boolean {
+    const n = polygon.length;
+    if (n < 3) return false;
+    let inside = false;
+    for (let i = 0, j = n - 1; i < n; j = i++) {
+      const xi = polygon[i]!.x;
+      const yi = polygon[i]!.y;
+      const xj = polygon[j]!.x;
+      const yj = polygon[j]!.y;
+
+      const intersect =
+        yi > pt.y !== yj > pt.y &&
+        pt.x < ((xj - xi) * (pt.y - yi)) / (yj - yi) + xi;
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  }
+
+  /**
+   * Computes the geometric centroid (center of mass) of any simple polygon.
+   */
+  public static computePolygonCentroid(polygon: readonly Point2D[]): Point2D {
+    const n = polygon.length;
+    if (n === 0) return { x: 0, y: 0 };
+    if (n === 1) return { ...polygon[0]! };
+    if (n === 2) {
+      return {
+        x: Math.round((polygon[0]!.x + polygon[1]!.x) * 0.5),
+        y: Math.round((polygon[0]!.y + polygon[1]!.y) * 0.5),
+      };
+    }
+
+    let signedArea = 0;
+    let cx = 0;
+    let cy = 0;
+
+    for (let i = 0; i < n; i++) {
+      const p0 = polygon[i]!;
+      const p1 = polygon[(i + 1) % n]!;
+      const a = p0.x * p1.y - p1.x * p0.y;
+      signedArea += a;
+      cx += (p0.x + p1.x) * a;
+      cy += (p0.y + p1.y) * a;
+    }
+
+    signedArea *= 0.5;
+    if (Math.abs(signedArea) < 1e-4) {
+      let sumX = 0;
+      let sumY = 0;
+      for (const p of polygon) {
+        sumX += p.x;
+        sumY += p.y;
+      }
+      return { x: Math.round(sumX / n), y: Math.round(sumY / n) };
+    }
+
+    const factor = 1 / (6 * signedArea);
+    return {
+      x: Math.round(cx * factor),
+      y: Math.round(cy * factor),
+    };
+  }
+
+  /**
+   * Proportional 2-Point scale calculation for calibrated blueprints & underlays:
+   * scaleMmPerPx = currentScale * (targetRealWorldMm / measuredSpanMm)
+   */
+  public static computeCalibrationScale(params: {
+    currentScaleMmPerPx: number;
+    measuredSpanMm: number;
+    targetRealWorldMm: number;
+  }): number {
+    const safeMeasured = Math.max(10, params.measuredSpanMm);
+    const safeTarget = Math.max(100, Math.min(100000, params.targetRealWorldMm));
+    const adjustmentMultiplier = safeTarget / safeMeasured;
+    return Math.round(params.currentScaleMmPerPx * adjustmentMultiplier * 1000) / 1000;
+  }
+
+  /**
+   * Computes bounding centroid and span radius across multi-storey vertices/draft polygons
+   * for automatic 3D & 2D camera viewport framing.
+   */
+  public static computeBuildingBoundingBox(points: readonly Point2D[]): {
+    minX: number;
+    maxX: number;
+    minY: number;
+    maxY: number;
+    centerX: number;
+    centerY: number;
+    spanMeters: number;
+  } {
+    if (points.length === 0) {
+      return { minX: 0, maxX: 0, minY: 0, maxY: 0, centerX: 0, centerY: 0, spanMeters: 10 };
+    }
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    for (const p of points) {
+      if (p.x < minX) minX = p.x;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.y > maxY) maxY = p.y;
+    }
+    const centerX = (minX + maxX) * 0.5;
+    const centerY = (minY + maxY) * 0.5;
+    const spanMeters = Math.hypot((maxX - minX) * 0.001, (maxY - minY) * 0.001);
+    return { minX, maxX, minY, maxY, centerX, centerY, spanMeters };
+  }
 }
 
